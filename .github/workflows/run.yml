@@ -19,7 +19,7 @@ jobs:
 
       - name: 安装依赖库
         run: |
-          pip install feedparser gspread openai
+          pip install feedparser gspread google-generativeai
 
       - name: 生成 Google 凭证文件
         env:
