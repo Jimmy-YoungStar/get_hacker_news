@@ -2,8 +2,8 @@ name: Daily IT News Automation
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 每天 UTC 时间 0点（北京时间早上 8 点）自动运行
-  workflow_dispatch: # 允许你在 GitHub 网页上手动点一下立即运行
+    - cron: '0 0 * * *' # 每天北京时间早上 8 点运行
+  workflow_dispatch: # 允许你随时在网页上手动点一下测试
 
 jobs:
   run-script:
@@ -21,9 +21,14 @@ jobs:
         run: |
           pip install feedparser gspread openai
 
+      - name: 生成 Google 凭证文件
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          echo "$GCP_SA_KEY" > credentials.json
+
       - name: 运行主脚本
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          # Google 的凭证可以安全地存在 GitHub Secrets 中
+          GEMINI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           python main.py
