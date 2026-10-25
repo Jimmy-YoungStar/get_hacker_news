@@ -4,7 +4,7 @@ import gspread
 from openai import OpenAI
 
 # 1. 初始化 AI 客户端 (以 OpenAI 为例，密钥从环境变量读取)
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.environ.get("GEMINI_API_KEY"))
 
 # 2. 连接 Google Sheets (通过环境变量里的服务账号 JSON)
 # 在 GitHub Actions 中，我们可以把 JSON 内容存入 Secrets
