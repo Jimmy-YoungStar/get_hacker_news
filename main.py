@@ -39,8 +39,9 @@ def main():
     """
 
   # 调用新版 SDK 生成内容
+  # 使用官方最新的 gemini-2.0-flash 模型
   response = client.models.generate_content(
-      model="gemini-1.5-flash", contents=prompt
+      model="gemini-2.0-flash", contents=prompt
   )
   ai_result = response.text
 
