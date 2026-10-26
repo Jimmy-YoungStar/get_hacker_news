@@ -3,10 +3,10 @@ import feedparser
 import google.generativeai as genai
 import gspread
 
-# 1. 初始化 Gemini API 密钥
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+# 必须加上这一句，把系统的环境变量取出来配给 SDK
+api_key = os.environ.get("GEMINI_API_KEY")
+genai.configure(api_key=api_key)
 
-# 选择 Gemini 模型（推荐使用 gemini-1.5-flash，速度快且适合处理文本总结）
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 gc = gspread.service_account(filename="credentials.json")
