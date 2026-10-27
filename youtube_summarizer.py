@@ -1,24 +1,76 @@
+import os
 import feedparser
-import gspread
 from youtube_transcript_api import YouTubeTranscriptApi
-# 伪代码逻辑示例：
-# 1. 解析 RSS 获取最新视频
-rss_url = "https://www.youtube.com/feeds/videos.xml?channel_id=UC6biysICWOJ-C3P4Tyeggzg"
-feed = feedparser.parse(rss_url)
-latest_entry = feed.entries[0]
-video_id = latest_entry.yt_videoid
+import google.generativeai as genai
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
-# 2. 检查是否已处理过
-if not is_already_processed(video_id):
-  # 3. 获取字幕
-  transcript = YouTubeTranscriptApi.get_transcript(video_id)
-  text_content = " ".join([item["text"] for item in transcript])
+# 配置 API
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+genai.configure(api_key=GEMINI_API_KEY)
 
-  # 4. 调用 Gemini API 生成摘要
-  summary = call_gemini_api(text_content)
+# 配置 Google Sheets
+scope = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive",
+]
+credentials_dict = eval(os.environ.get("GOOGLE_CREDENTIALS_JSON"))
+creds = ServiceAccountCredentials.from_json_keyfile_dict(
+    credentials_dict, scope
+)
+client = gspread.authorize(creds)
+sheet = client.open("Your_Sheet_Name").sheet1  # 替换为你的 Google Sheets 表格名称
 
-  # 5. 写入 Google Sheets 或 Obsidian
-  append_to_google_sheets(
-      latest_entry.title, summary, latest_entry.link, latest_entry.published
+
+def get_latest_video():
+  # Low Level 频道的 RSS 地址
+  rss_url = (
+      "https://www.youtube.com/feeds/videos.xml?channel_id=UC6biysICWOJ-C3P4Tyeggzg"
   )
-  mark_as_processed(video_id)
+  feed = feedparser.parse(rss_url)
+  if not feed.entries:
+    return None
+  latest = feed.entries[0]
+  return {
+      "id": latest.get("yt_videoid"),
+      "title": latest.title,
+      "link": latest.link,
+      "published": latest.published,
+  }
+
+
+def summarize_transcript(video_id):
+  try:
+    transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+    text = " ".join([item["text"] for item in transcript_list])
+
+    model = genai.GenerativeModel("gemini-2.5-flash")
+    prompt = (
+        "你是一个资深漏洞研究员。请阅读以下YouTube视频的字幕，并用中文提炼出：\n"
+        "1. 核心主题与背景\n"
+        "2. 关键技术点、工具或逆向细节\n"
+        "3. 实操结论与核心价值\n\n"
+        f"字幕内容：\n{text[:15000]}"
+    )
+    response = model.generate_content(prompt)
+    return response.text
+  except Exception as e:
+    return f"获取或分析字幕失败: {str(e)}"
+
+
+if __name__ == "__main__":
+  video = get_latest_video()
+  if video:
+    # 利用 Google Sheets 已有记录进行去重，免去本地维护 JSON 文件的麻烦
+    existing_records = sheet.get_all_records()
+    processed_ids = [str(r.get("Video ID", "")) for r in existing_records]
+
+    if video["id"] not in processed_ids:
+      print(f"发现新视频: {video['title']}")
+      summary = summarize_transcript(video["id"])
+      sheet.append_row(
+          [video["published"], video["title"], summary, video["link"], video["id"]]
+      )
+      print("已成功写入 Google Sheets！")
+    else:
+      print("没有新视频需要处理。")
