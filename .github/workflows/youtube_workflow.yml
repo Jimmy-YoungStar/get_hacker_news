@@ -1,1 +1,30 @@
+name: YouTube Intelligence Summarizer
 
+on:
+  schedule:
+    - cron: '0 8 * * *' # 每天定时运行（可按需修改时间）
+  workflow_dispatch: # 支持在 GitHub 后台手动点击触发
+
+jobs:
+  run-youtube-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run summarizer script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+        run: |
+          python youtube_summarizer.py
